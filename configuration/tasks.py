@@ -70,8 +70,8 @@ def dev_install():
     run('sudo docker pull postgres')
     run('sudo docker pull redis')
     run('sudo docker build -t django-dev .')
-    run('echo "inv(){ pushd /home/vagrant/configuration && invoke $1 $2 $3 $4 $5 $6 && popd; }" >> ~/.bashrc')
-    run("""echo "dj(){ pushd /home/vagrant/configuration && invoke manage '$1 $2 $3 $4 $5' && popd; }" >> ~/.bashrc""")
+    run('echo "inv(){ pushd /home/vagrant/configuration && invoke $1 $2 $3 $4 $5 $6 && popd; }" >> /home/vagrant/.bashrc')
+    run("""echo "dj(){ pushd /home/vagrant/configuration && invoke manage '$1 $2 $3 $4 $5' && popd; }" >> /home/vagrant/.bashrc""")
 
 
 @task
