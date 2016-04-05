@@ -75,9 +75,9 @@ Vagrant.configure(2) do |config|
     sudo service docker restart
     newgrp docker
     echo "Pip install dev environment dependencies"
-    pip install invoke
-    pip install six
-    pip install colorama
+    sudo pip install invoke
+    sudo pip install six
+    sudo pip install colorama
     echo "Prepare dev environment"
     pushd /home/vagrant/configuration && invoke dev_install
   SHELL
