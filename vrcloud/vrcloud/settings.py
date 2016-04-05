@@ -22,11 +22,16 @@ import uuid
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-IMAGE_NAME = os.environ.get("IMAGE_NAME", 'dev_image')
+VERBOSE = os.environ.get("DJANGO_VERBOSE", True)
+
 HOME_DIR = os.environ.get("HOME")
+if VERBOSE:
+    print("HOME: {}".format(HOME_DIR))
 
 ADMINS = ((os.environ.get("DJANGO_ADMIN_NAME", "Curtis Lassam"),
            os.environ.get("DJANGO_ADMIN_EMAIL", "curtis@lassam.net")), )
+if VERBOSE:
+    print("ADMINS: {}".format(ADMINS))
 
 SITE_DOMAIN = os.environ.get("DJANGO_DOMAIN", "marquee.click")
 
@@ -36,9 +41,9 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", uuid.uuid4())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not os.environ.get("DJANGO_PRODUCTION", False)
 
-if DEBUG:
+if DEBUG and VERBOSE:
     print("Loading in DEBUG mode!")
-else:
+elif VERBOSE:
     print("Loading in PRODUCTION mode!")
 
 ALLOWED_HOSTS = ['*']
@@ -114,11 +119,11 @@ USE_L10N = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-# STATIC_URL = '/static/'
-# STATIC_ROOT = '${HOME}/vagrant_django/nginx/static'
+STATIC_URL = '/static/'
+STATIC_ROOT = '${HOME}/static'
 
-# MEDIA_URL = SITE_URL + '/media/upload/'
-# MEDIA_ROOT = '${HOME}/vagrant_django/nginx/media/upload'
+MEDIA_URL = SITE_URL + '/media/'
+MEDIA_ROOT = '${HOME}/media'
 
 # AUTH STUFF
 LOGIN_URL = "/dashboard/login"
@@ -192,7 +197,6 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            # insert your TEMPLATE_DIRS here
         ],
         'APP_DIRS': True,
         'OPTIONS': {

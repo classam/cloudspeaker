@@ -10,4 +10,5 @@ def status(request):
      * Email
      * Tasks Subsystem
     """
-    return render("status/status.html", {})
+
+    return render(request, "status/status.html", {})
