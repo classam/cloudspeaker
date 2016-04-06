@@ -79,6 +79,6 @@ Vagrant.configure(2) do |config|
     sudo pip install six
     sudo pip install colorama
     echo "Prepare dev environment"
-    pushd /home/vagrant/configuration && invoke dev_install
+    pushd /home/vagrant/configuration && invoke install
   SHELL
 end
