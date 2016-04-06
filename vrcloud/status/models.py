@@ -1,6 +1,10 @@
+import logging
+
 from django.utils import timezone
 from django.db import models
+from django.db.utils import OperationalError, ProgrammingError
 
+log = logging.getLogger('vrcloud.{}'.format(__name__))
 
 class DatabaseStatus(models.Model):
     """
@@ -12,14 +16,23 @@ class DatabaseStatus(models.Model):
     def save(self):
         if not self.id:
             self.created = timezone.now()
+        super().save()
 
     @classmethod
-    def write_ok(cls) -> bool:
-        s = cls()
-        s.save()
-        return True
+    def ok(cls) -> bool:
+        s = DatabaseStatus()
+        try:
+            s.save()
+        except OperationalError as e:
+            log.error(e)
+            return False
+        except ProgrammingError as e:
+            log.error(e)
+            return False
 
-    @classmethod
-    def read_ok(cls) -> bool:
-        cls.objects.all().order_by('-created')[0]
+        try:
+            a = DatabaseStatus.objects.all().order_by('-created')[0]
+        except IndexError:
+            log.error("Database write succeeded but read failed.")
+            return False
         return True
