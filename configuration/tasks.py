@@ -82,7 +82,7 @@ def install():
     run('sudo docker pull postgres')
     run('sudo docker pull redis')
     run('sudo docker build -t django-dev .')
-    run('echo "dj(){ pushd /home/vagrant/configuration && invoke \$1 \$2 \$3 \$4 \$5 \$6 && popd; }" >> /home/vagrant/.bashrc')
+    run('echo "dj(){ cd /home/vagrant/configuration && invoke \$1 \$2 \$3 \$4 \$5 \$6 && cd -; }" >> /home/vagrant/.bashrc')
 
 
 def is_postgres_running():
