@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+import time
 
 from invoke import run as silentrun, task
 from six import iteritems
@@ -19,6 +20,7 @@ POSTGRES_PORT = os.environ.get('POSTGRES_PORT', 5432)
 PGDATA = os.environ.get('PGDATA', '/var/lib/postgres/data/tmp')
 RAMDISK_SIZE = os.environ.get('POSTGRES_RAM', '512M')
 
+
 def section(text):
     """
     Some text we want to print between major actions.
@@ -26,6 +28,7 @@ def section(text):
     sys.stdout.write(Fore.CYAN)
     print(text)
     sys.stdout.write(Fore.RESET)
+
 
 def run(cmd, **kwargs):
     """
@@ -87,7 +90,7 @@ def is_postgres_running():
     Returns True if the 'postgres' image is running.
     """
     section("Is postgres running?")
-    result = run('docker ps | grep postgres')
+    result = run('docker ps')
     return "postgres" in result.stdout
 
 
@@ -102,6 +105,8 @@ def boot_postgres():
     if is_postgres_running():
         print("Postgres is already running!")
         return
+    else:
+        print("Postgres is not running!")
 
     # Make sure postgres is well and truly dead before we attempt to resurrect it
     kill_postgres()
@@ -123,6 +128,9 @@ def boot_postgres():
          '-d ' +
          'postgres ').format(port=POSTGRES_PORT,
                              postgres_args=docker_vars(postgres_args)))
+
+    # Postgres needs a couple of seconds to boot up.
+    time.sleep(2)
 
 
 @task
@@ -166,7 +174,6 @@ def manage(cmd):
     def intercept_sigint_and_kill_docker_container(*_):
         section("Cleaning up containers...")
         run("docker kill django-manage")
-        run("docker rm django-manage")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, intercept_sigint_and_kill_docker_container)
@@ -203,14 +210,59 @@ def runserver():
 @task
 def makemigrations():
     """
-    Make migrations
+    Scan DB Models for changes to the database. Make 'migrations' entries for them.
     """
+    section("Scanning DB Models for changes to the database")
     manage("makemigrations")
 
 
 @task
 def migrate():
     """
-    Apply migrations
+    Apply any outstanding 'migrations' entries to the database.
     """
+    section("Apply any changes to the database")
     manage("migrate")
+
+
+@task
+def startapp(name):
+    """
+    Create an application with name --name
+    """
+    manage("startapp {}".format(name))
+
+
+@task
+def check():
+    """
+    Check the app for common problems
+    """
+    manage("check")
+    manage("sendtestemail --admins")
+
+
+@task
+def dbshell():
+    """
+    Run the DB Shell
+    """
+    manage("dbshell")
+
+
+@task
+def shell():
+    """
+    Run the iPython Shell
+    """
+    manage("shell")
+
+
+@task
+def go():
+    """
+    Get the dev server ready and GO!
+    """
+    makemigrations()
+    migrate()
+    runserver()
