@@ -313,3 +313,14 @@ def go():
     makemigrations()
     migrate()
     runserver()
+
+@task
+def stop():
+    """
+    Kill everything, get us back to a clean state.
+    """
+    kill_postgres()
+    kill_redis()
+    run("docker kill django-manage", warn=True)
+    run("docker rm django-manage", warn=True)
+    recycle()

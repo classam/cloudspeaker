@@ -3,6 +3,9 @@ import logging
 from django.utils import timezone
 from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
+from django.core.cache import cache
+
+from django_redis import get_redis_connection
 
 log = logging.getLogger('vrcloud.{}'.format(__name__))
 
@@ -36,3 +39,22 @@ class DatabaseStatus(models.Model):
             log.error("Database write succeeded but read failed.")
             return False
         return True
+
+
+def database_ok():
+    return DatabaseStatus.ok()
+
+
+def cache_ok():
+    cache.set("foo", "bar", timeout=1)
+    foo = cache.get("foo")
+    return foo == "bar"
+
+
+def data_ok():
+    con = get_redis_connection("data")
+    con.set("foo", "bar")
+    foo = con.get("foo")
+    log.info(foo)
+    return True
+

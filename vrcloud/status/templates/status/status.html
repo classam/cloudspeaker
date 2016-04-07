@@ -30,6 +30,17 @@
         <h3> Database NOT OK! </h3>
       {% endif %}
 
+      {% if cache_ok %}
+        <h3> Redis Cache OK! </h3>
+      {% else %}
+        <h3> Redis Cache NOT OK! </h3>
+      {% endif %}
+
+      {% if data_ok %}
+        <h3> Redis Data OK! </h3>
+      {% else %}
+        <h3> Redis Data NOT OK! </h3>
+      {% endif %}
   </div>
   </body>
 </html>

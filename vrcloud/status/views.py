@@ -1,5 +1,7 @@
 from django.shortcuts import render
-from .models import DatabaseStatus
+from django.core.cache import cache
+
+from .models import database_ok, cache_ok, data_ok
 
 
 def status(request):
@@ -14,6 +16,6 @@ def status(request):
      * Tasks Subsystem
     """
 
-    db_ok = DatabaseStatus.ok()
-
-    return render(request, "status/status.html", {'db_ok':db_ok})
+    return render(request, "status/status.html", {'db_ok':database_ok(),
+                                                  'cache_ok':cache_ok(),
+                                                  'data_ok':data_ok()})
