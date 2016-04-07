@@ -13,12 +13,15 @@ sys.stderr.write(Fore.RED)
 PORT = os.environ.get('DEV_PORT', 8080)
 LOCAL_DIR = os.environ.get('DEV_LOCAL_DIR', '/home/vagrant/vrcloud')
 CONTAINER_DIR = os.environ.get('DEV_CONTAINER_DIR', '/vrcloud')
+
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'cloudspeaker')
 POSTGRES_USER = os.environ.get('POSTGRES_USER', 'cloudspeaker')
 POSTGRES_DB = os.environ.get('POSTGRES_DB', 'cloudspeaker')
 POSTGRES_PORT = os.environ.get('POSTGRES_PORT', 5432)
 PGDATA = os.environ.get('PGDATA', '/var/lib/postgres/data/tmp')
 RAMDISK_SIZE = os.environ.get('POSTGRES_RAM', '512M')
+
+REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 
 
 def section(text):
@@ -85,13 +88,13 @@ def install():
     run('echo "dj(){ cd /home/vagrant/configuration && invoke \$1 \$2 \$3 \$4 \$5 \$6 && cd -; }" >> /home/vagrant/.bashrc')
 
 
-def is_postgres_running():
+def is_running(image_name):
     """
-    Returns True if the 'postgres' image is running.
+    Returns True if the named image is running.
     """
     section("Is postgres running?")
     result = run('docker ps')
-    return "postgres" in result.stdout
+    return image_name in result.stdout
 
 
 @task
@@ -102,7 +105,7 @@ def boot_postgres():
     """
     section("Boot the postgres image.")
 
-    if is_postgres_running():
+    if is_running("postgres"):
         print("Postgres is already running!")
         return
     else:
@@ -145,6 +148,44 @@ def kill_postgres():
 
 
 @task
+def boot_redis():
+    """
+    Boot the Redis image.
+    """
+    section("Boot the redis image.")
+
+    if is_running("redis"):
+        print("Redis is already running!")
+        return
+    else:
+        print("Redis is not running!")
+
+    # Make sure postgres is well and truly dead before we attempt to resurrect it
+    kill_redis()
+
+    redis_args = {}
+
+    run(('docker run ' +
+         '--name dev-redis ' +
+         '-p {port}:{port} ' +
+         '-d ' +
+         'redis ').format(port=REDIS_PORT))
+
+    # Redis needs a couple of seconds to boot up.
+    time.sleep(2)
+
+
+@task
+def kill_redis():
+    """
+    Kills the redis image.
+    """
+    section("Kill & clean up the Redis image.")
+    run('docker stop dev-redis', warn=True)
+    run('docker rm dev-redis', warn=True)
+
+
+@task
 def ps():
     """
     List all docker containers
@@ -180,6 +221,10 @@ def manage(cmd):
 
     # Boot Postgres (if it's not already up)
     boot_postgres()
+    boot_redis()
+
+    local_ip = docker_ip()
+    redis_location = "redis://{host}:{port}".format(host=local_ip, port=REDIS_PORT)
 
     run(("docker run " +
          "-p {port}:{port} " +
@@ -190,10 +235,12 @@ def manage(cmd):
          "--rm " +
          "--name django-manage " +
          "-e POSTGRES_HOST='{postgres_host}' " +
+         "-e REDIS_LOCATION='{redis_location}' " +
          "django-dev " +
          "python3 manage.py {cmd} " +
          "").format(port=PORT,
-                    postgres_host=docker_ip(),
+                    postgres_host=local_ip,
+                    redis_location=redis_location,
                     local_dev_dir=LOCAL_DIR,
                     container_dev_dir=CONTAINER_DIR,
                     cmd=cmd), pty=True)

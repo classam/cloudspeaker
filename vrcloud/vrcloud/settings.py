@@ -12,6 +12,11 @@ DJANGO_ADMIN_NAME   - the name of the primary admin
 DJANGO_ADMIN_EMAIL  - the e-mail address of the primary admin
 DJANGO_SECRET_KEY   - some large lump of very secret, very random content
 DJANGO_PRODUCTION   - True if prod, False otherwise
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+POSTGRES_HOST
+POSTGRES_PORT
 REDIS_LOCATION      - e.g. '/tmp/redis.sock' or '<host>:<port>'
 
 """
@@ -48,23 +53,48 @@ elif VERBOSE:
 
 ALLOWED_HOSTS = ['*']
 
+# DATABASE CONFIGURATIONS!
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.environ.get('POSTGRES_DB', 'cloudspeaker'),
+        'USER': os.environ.get('POSTGRES_USER', 'cloudspeaker'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'cloudspeaker'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+    }
+}
+
+# CACHE CONFIGURATIONS
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get("REDIS_LOCATION", 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            #'SERIALIZER': 'django_redis.serializers.msgpack.MSGPackSerializer',
+        }
+    },
+    'data': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get("REDIS_LOCATION", 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SERIALIZER': 'django_redis.serializers.msgpack.MSGPackSerializer',
+        }
+    },
+}
+CACHE_MIDDLEWARE_ALIAS = 'default'
+
 if DEBUG:
-    # When we're in debug mode, we don't want any caching to occur
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        },
-    }
+    CACHE_MIDDLEWARE_SECONDS = 1
 else:
-    # TODO: MessagePack here, instead of the default Pickle
-    CACHES = {
-        'default': {
-            'BACKEND': 'redis_cache.RedisCache',
-            'LOCATION': os.environ.get("REDIS_LOCATION", '/tmp/redis.sock')
-        },
-    }
-    CACHE_MIDDLEWARE_ALIAS = 'default'
-    CACHE_MIDDLEWARE_SECONDS = 60 * 60
+    CACHE_MIDDLEWARE_SECONDS = 60
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 # CELERY SETTINGS
 # BROKER_URL = 'amqp://guest:guest@localhost:5672//'
@@ -78,17 +108,6 @@ WSGI_APPLICATION = 'vrcloud.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('POSTGRES_DB', 'cloudspeaker'),
-        'USER': os.environ.get('POSTGRES_USER', 'cloudspeaker'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'cloudspeaker'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-    }
-}
 
 if DEBUG:
     SITE_URL = 'http://localhost:18080'
