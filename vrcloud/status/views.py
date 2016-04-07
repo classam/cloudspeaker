@@ -12,8 +12,8 @@ def status(request):
      * DB
      * Cache
      * Message Queue
-     * Email
      * Tasks Subsystem
+     * Email
     """
 
     return render(request, "status/status.html", {'db_ok':database_ok(),
