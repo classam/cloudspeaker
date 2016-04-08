@@ -53,6 +53,7 @@ def cache_ok():
 
 def data_ok():
     con = get_redis_connection("data")
+    # https://redis-py.readthedocs.org/en/latest/
     con.set("foo", "bar")
     foo = con.get("foo")
     log.info(foo)
