@@ -7,7 +7,32 @@ from django.core.cache import cache
 
 from django_redis import get_redis_connection
 
+
 log = logging.getLogger('vrcloud.{}'.format(__name__))
+
+
+def database_ok():
+    return DatabaseStatus.ok()
+
+
+def cache_ok():
+    cache.set("foo", "bar", timeout=1)
+    foo = cache.get("foo")
+    return foo == "bar"
+
+
+def data_ok():
+    con = get_redis_connection("data")
+    # https://redis-py.readthedocs.org/en/latest/
+    con.set("foo", "bar")
+    foo = con.get("foo")
+    log.info(foo)
+    return True
+
+
+def celery_ok():
+    return CeleryStatus.ok()
+
 
 class DatabaseStatus(models.Model):
     """
@@ -41,21 +66,24 @@ class DatabaseStatus(models.Model):
         return True
 
 
-def database_ok():
-    return DatabaseStatus.ok()
+class CeleryStatus(models.Model):
+    """
+    There's a background task to write CeleryStatus objects.
+    We want to check that this status has been written, recently.
+    """
+    created = models.DateTimeField()
 
+    def save(self):
+        if not self.id:
+            self.created = timezone.now()
+        super().save()
 
-def cache_ok():
-    cache.set("foo", "bar", timeout=1)
-    foo = cache.get("foo")
-    return foo == "bar"
+    @classmethod
+    def ok(cls) -> bool:
+        try:
+            cstat = CeleryStatus.objects.all().order_by('-created')[0]
+        except IndexError:
+            return False
 
-
-def data_ok():
-    con = get_redis_connection("data")
-    # https://redis-py.readthedocs.org/en/latest/
-    con.set("foo", "bar")
-    foo = con.get("foo")
-    log.info(foo)
-    return True
+        return True
 

@@ -41,6 +41,12 @@
       {% else %}
         <h3> Redis Data NOT OK! </h3>
       {% endif %}
+
+      {% if celery_ok %}
+        <h3> Celery OK! </h3>
+      {% else %}
+        <h3> Celery NOT OK! (If we've been running for less than a minute, wait a minute, Mister Impatient) </h3>
+      {% endif %}
   </div>
   </body>
 </html>

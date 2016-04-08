@@ -24,6 +24,7 @@ REDIS_LOCATION      - e.g. '/tmp/redis.sock' or '<host>:<port>'
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import uuid
+from datetime import timedelta
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -242,4 +243,8 @@ TEMPLATES = [
 ]
 
 CELERYBEAT_SCHEDULE = {
+    'celerystatus':{
+        'task':'status.tasks.tick',
+            'schedule': timedelta(minutes=1),
+    },
 }
