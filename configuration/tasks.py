@@ -155,6 +155,15 @@ def kill_postgres():
 
 
 @task
+def logs_postgres():
+    """
+    Get the postgres logs
+    """
+    section("Get the postgres logs")
+    run('docker logs dev-postgres')
+
+
+@task
 def boot_redis():
     """
     Boot the Redis image.
@@ -190,6 +199,15 @@ def kill_redis():
     section("Kill & clean up the Redis image.")
     run('docker stop dev-redis', warn=True)
     run('docker rm dev-redis', warn=True)
+
+
+@task
+def logs_redis():
+    """
+    Get the redis logs
+    """
+    section("Get the redis logs")
+    run('docker logs dev-redis')
 
 
 @task
@@ -234,6 +252,15 @@ def kill_rabbitmq():
     section("Kill & clean up the RabbitMQ image.")
     run('docker stop dev-rabbitmq', warn=True)
     run('docker rm dev-rabbitmq', warn=True)
+
+
+@task
+def logs_rabbitmq():
+    """
+    Get the rabbitmq logs
+    """
+    section("Get the rabbitmq logs")
+    run('docker logs dev-rabbitmq')
 
 
 @task
@@ -294,6 +321,15 @@ def kill_celery():
 
 
 @task
+def logs_celery():
+    """
+    Get the celery logs
+    """
+    section("Get the celery logs")
+    run('docker logs dev-celery')
+
+
+@task
 def ps():
     """
     List all docker containers
@@ -330,6 +366,8 @@ def manage(cmd):
     # Boot Postgres (if it's not already up)
     boot_postgres()
     boot_redis()
+    boot_rabbitmq()
+    boot_celery()
 
     local_ip = docker_ip()
     redis_location = "redis://{host}:{port}".format(host=local_ip, port=REDIS_PORT)
@@ -429,6 +467,8 @@ def stop():
     """
     kill_postgres()
     kill_redis()
+    kill_celery()
+    kill_rabbitmq()
     run("docker kill django-manage", warn=True)
     run("docker rm django-manage", warn=True)
     recycle()
