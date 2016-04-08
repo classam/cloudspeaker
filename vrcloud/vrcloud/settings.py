@@ -74,7 +74,6 @@ CACHES = {
         'LOCATION': os.environ.get("REDIS_LOCATION", 'redis://127.0.0.1:6379/1'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            #'SERIALIZER': 'django_redis.serializers.msgpack.MSGPackSerializer',
         }
     },
     'data': {
@@ -97,10 +96,17 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 # CELERY SETTINGS
-# BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
+RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'localhost')
+RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5432')
+RABBITMQ_USER = os.environ.get('RABBITMQ_USER', 'rabbityface')
+RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS', 'rabbitypass')
+BROKER_URL = 'amqp://{user}:{passwd}@{host}:{port}//'.format(host=RABBITMQ_HOST,
+                                                             port=RABBITMQ_PORT,
+                                                             user=RABBITMQ_USER,
+                                                             passwd=RABBITMQ_PASS)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
 ROOT_URLCONF = 'vrcloud.urls'
 
@@ -110,7 +116,7 @@ WSGI_APPLICATION = 'vrcloud.wsgi.application'
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 if DEBUG:
-    SITE_URL = 'http://localhost:18080'
+    SITE_URL = 'http://localhost:8080'
 else:
     SITE_URL = "http://{}".format(SITE_DOMAIN)
 

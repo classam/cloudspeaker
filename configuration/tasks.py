@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 import time
+import uuid
 
 from invoke import run as silentrun, task
 from six import iteritems
@@ -17,12 +18,17 @@ CONTAINER_DIR = os.environ.get('DEV_CONTAINER_DIR', '/vrcloud')
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'cloudspeaker')
 POSTGRES_USER = os.environ.get('POSTGRES_USER', 'cloudspeaker')
 POSTGRES_DB = os.environ.get('POSTGRES_DB', 'cloudspeaker')
-POSTGRES_PORT = os.environ.get('POSTGRES_PORT', 5432)
+POSTGRES_PORT = os.environ.get('POSTGRES_PORT', '5432')
 PGDATA = os.environ.get('PGDATA', '/var/lib/postgres/data/tmp')
 RAMDISK_SIZE = os.environ.get('POSTGRES_RAM', '512M')
 
 REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 
+RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5672')
+RABBITMQ_USER = os.environ.get('RABBITMQ_USER', 'rabbityface')
+RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS', 'rabbitypass')
+RABBITMQ_HOSTNAME = os.environ.get('RABBITMQ_HOSTNAME', 'cloudrabbit')
+RABBITMQ_COOKIE = os.environ.get('RABBITMQ_COOKIE', uuid.uuid4())
 
 def section(text):
     """
@@ -84,6 +90,7 @@ def install():
     """
     run('sudo docker pull postgres')
     run('sudo docker pull redis')
+    run('sudo docker pull rabbitmq')
     run('sudo docker build -t django-dev .')
     run('echo "dj(){ cd /home/vagrant/configuration && invoke \$1 \$2 \$3 \$4 \$5 \$6 && cd -; }" >> /home/vagrant/.bashrc')
 
@@ -183,6 +190,107 @@ def kill_redis():
     section("Kill & clean up the Redis image.")
     run('docker stop dev-redis', warn=True)
     run('docker rm dev-redis', warn=True)
+
+
+@task
+def boot_rabbitmq():
+    """
+    Boots rabbitMQ.
+    """
+    section("Boot the rabbitMQ image.")
+
+    if is_running("rabbitmq"):
+        print("rabbitmq is already running!")
+        return
+    else:
+        print("rabbitmq is not running!")
+
+    # Make sure postgres is well and truly dead before we attempt to resurrect it
+    kill_rabbitmq()
+
+    run(('docker run ' +
+         '--name dev-rabbitmq ' +
+         '-p {port}:{port} ' +
+         '--hostname {rabbitmq_hostname} ' +
+         '-e RABBITMQ_ERLANG_COOKIE="{rabbitmq_cookie}" ' +
+         '-e RABBITMQ_DEFAULT_USER="{rabbitmq_user}" ' +
+         '-e RABBITMQ_DEFAULT_PASS="{rabbitmq_pass}" ' +
+         '-d ' +
+         'rabbitmq ').format(port=RABBITMQ_PORT,
+                             rabbitmq_hostname=RABBITMQ_HOSTNAME,
+                             rabbitmq_user=RABBITMQ_USER,
+                             rabbitmq_pass=RABBITMQ_PASS,
+                             rabbitmq_cookie=RABBITMQ_COOKIE))
+
+    # RabbitMQ needs a couple of seconds to boot up.
+    time.sleep(2)
+
+
+@task
+def kill_rabbitmq():
+    """
+    Kills the rabbitmq image.
+    """
+    section("Kill & clean up the RabbitMQ image.")
+    run('docker stop dev-rabbitmq', warn=True)
+    run('docker rm dev-rabbitmq', warn=True)
+
+
+@task
+def boot_celery():
+    """
+    Boots celery
+    """
+    section("Boot the celery image.")
+
+    if is_running("celery"):
+        print("celery is already running!")
+        return
+    else:
+        print("celery is not running!")
+
+    # Make sure postgres is well and truly dead before we attempt to resurrect it
+    kill_celery()
+
+    local_ip = docker_ip()
+    redis_location = "redis://{host}:{port}".format(host=local_ip, port=REDIS_PORT)
+
+    args = {
+        'POSTGRES_HOST':local_ip,
+        'REDIS_LOCATION':redis_location,
+        'PYTHONPATH':CONTAINER_DIR,
+        'RABBITMQ_HOST':local_ip,
+        'RABBITMQ_PORT':RABBITMQ_PORT,
+        'RABBITMQ_USER':RABBITMQ_USER,
+        'RABBITMQ_PASS':RABBITMQ_PASS,
+        'DJANGO_SETTINGS_MODULE':'vrcloud.settings'
+    }
+
+    run(("docker run " +
+         "-v {local_dev_dir}:{container_dev_dir} " +
+         "-w {container_dev_dir} " +
+         "--name dev-celery " +
+         "-d " +
+         "{args} " +
+         "django-dev " +
+         "celery worker " +
+         "--app=vrcloud " +
+         "--loglevel=info " +
+         "--beat " +
+         "--concurrency=1 " +
+         "").format(args=docker_vars(args),
+                    local_dev_dir=LOCAL_DIR,
+                    container_dev_dir=CONTAINER_DIR), pty=True)
+
+
+@task
+def kill_celery():
+    """
+    Kills the rabbitmq image.
+    """
+    section("Kill & clean up the RabbitMQ image.")
+    run('docker stop dev-celery', warn=True)
+    run('docker rm dev-celery', warn=True)
 
 
 @task
