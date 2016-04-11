@@ -6,18 +6,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.9/ref/settings/
 
 Environment Variables:
-IMAGE_NAME          - the name of the image running this code
-HOME                - the home directory of the user running this code
-DJANGO_ADMIN_NAME   - the name of the primary admin
-DJANGO_ADMIN_EMAIL  - the e-mail address of the primary admin
-DJANGO_SECRET_KEY   - some large lump of very secret, very random content
-DJANGO_PRODUCTION   - True if prod, False otherwise
-POSTGRES_DB
-POSTGRES_USER
-POSTGRES_PASSWORD
-POSTGRES_HOST
-POSTGRES_PORT
-REDIS_LOCATION      - e.g. '/tmp/redis.sock' or '<host>:<port>'
+
+HOME                    - the home directory of the user running this code
+
+DJANGO_ADMIN_NAME       - the name of the primary admin
+DJANGO_ADMIN_EMAIL      - the e-mail address of the primary admin
+DJANGO_SECRET_KEY       - some large lump of very secret, very random content
+DJANGO_PRODUCTION       - True if prod, False otherwise
+DJANGO_DOMAIN           - The domain this site is being served from (i.e. 'butts.com')
+DJANGO_STATIC_URL       - URL where static site assets (js, css) are served from.
+DJANGO_STATIC_ROOT      - Location of static site assets
+DJANGO_MEDIA_URL        - URL where media (user files) are served from.
+DJANGO_MEDIA_ROOT       - Location of media files.
+DJANGO_FAVICON          - Location of a favicon
+
+GOOGLE_ANALYTICS_TOKEN  - Google Analytics account name - like "UA-41279849-1"
+
+POSTGRES_HOST           -
+POSTGRES_PORT           -
+POSTGRES_DB             -
+POSTGRES_USER           -
+POSTGRES_PASSWORD       -
+
+RABBITMQ_HOST           -
+RABBITMQ_PORT           -
+RABBITMQ_USER           -
+RABBITMQ_PASS           -
+
+REDIS_LOCATION          - e.g. '/tmp/redis.sock' or '<host>:<port>'
+
+AWS_ACCESS_KEY_ID       - Needed for SES Email.
+AWS_SECRET_ACCESS_KEY   -
+AWS_SES_REGION_NAME     - The AWS region we're serving e-mail from - like "us-west-2"
 
 """
 
@@ -39,8 +59,6 @@ ADMINS = ((os.environ.get("DJANGO_ADMIN_NAME", "Curtis Lassam"),
 if VERBOSE:
     print("ADMINS: {}".format(ADMINS))
 
-SITE_DOMAIN = os.environ.get("DJANGO_DOMAIN", "marquee.click")
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", uuid.uuid4())
 
@@ -55,6 +73,7 @@ elif VERBOSE:
 ALLOWED_HOSTS = ['*']
 
 # DATABASE CONFIGURATIONS!
+# https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -68,6 +87,7 @@ DATABASES = {
 }
 
 # CACHE CONFIGURATIONS
+# https://docs.djangoproject.com/en/1.9/topics/cache/
 
 CACHES = {
     'default': {
@@ -97,29 +117,36 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 # CELERY SETTINGS
+# http://docs.celeryproject.org/en/latest/django/index.html
 RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'localhost')
 RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5432')
 RABBITMQ_USER = os.environ.get('RABBITMQ_USER', 'rabbityface')
-RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS', 'rabbitypass')
+RABBITMQ_PASS = os.environ.get('RABBITMQ_PASSWORD', 'rabbitypass')
 BROKER_URL = 'amqp://{user}:{passwd}@{host}:{port}//'.format(host=RABBITMQ_HOST,
                                                              port=RABBITMQ_PORT,
                                                              user=RABBITMQ_USER,
                                                              passwd=RABBITMQ_PASS)
+
+# TODO: MsgPack
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+
+# URL
+
+SITE_DOMAIN = os.environ.get("DJANGO_DOMAIN", "marquee.click")
+
 ROOT_URLCONF = 'vrcloud.urls'
-
 WSGI_APPLICATION = 'vrcloud.wsgi.application'
-
-# Database
-# https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 if DEBUG:
     SITE_URL = 'http://localhost:8080'
 else:
     SITE_URL = "http://{}".format(SITE_DOMAIN)
+
+# Email
+# https://github.com/django-ses/django-ses
 
 EMAIL_SUBJECT_PREFIX = 'VR Cloud '
 SERVER_EMAIL = os.environ.get("DJANGO_ADMIN_EMAIL", "curtis@lassam.net")
@@ -145,22 +172,19 @@ USE_L10N = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_ROOT = '${HOME}/static'
+# Everything that matches the STATIC_URL will be served from the STATIC_ROOT
+# This is for css, javascript, and images.
+STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
+STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT', '/tmp/static')
 
-MEDIA_URL = SITE_URL + '/media/'
-MEDIA_ROOT = '${HOME}/media'
-
-# AUTH STUFF
-LOGIN_URL = "/dashboard/login"
+# Everything that matches the MEDIA_URL will be served from the MEDIA_ROOT
+# This is for user-uploaded files.
+MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', SITE_URL + '/media/')
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', '/tmp/media')
 
 # TZ
 TIME_ZONE = 'America/Vancouver'
 USE_TZ = True
-
-FAVICON = ''
-SITE_TITLE = 'VR Cloud'
-SITE_META = 'words go here'
 
 # Application definition
 INSTALLED_APPS = (
@@ -173,6 +197,7 @@ INSTALLED_APPS = (
     'bootstrap3',
 
     'status',
+    'dashboard',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -237,6 +262,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
+                'dashboard.context.globalsettings'
             ],
         },
     },
@@ -248,3 +274,14 @@ CELERYBEAT_SCHEDULE = {
             'schedule': timedelta(minutes=1),
     },
 }
+
+# Authentication
+# https://django-registration.readthedocs.org/en/2.0.3/
+LOGIN_URL = "/dashboard/login"
+ACCOUNT_ACTIVATION_DAYS = 7
+
+# Master Template Stuff
+GOOGLE_ANALYTICS_TOKEN = os.environ.get('GOOGLE_ANALYTICS_TOKEN', '12345')
+FAVICON = os.environ.get('DJANGO_FAVICON', 'http://cube-drone.com/static/dashboard/images/favicon.png')
+SITE_TITLE = os.environ.get('DJANGO_SITE_TITLE', 'MCClick')
+SITE_META = os.environ.get('DJANGO_SITE_META', 'An online community for things and stuff.')
