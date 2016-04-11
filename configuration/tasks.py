@@ -14,6 +14,10 @@ sys.stderr.write(Fore.RED)
 PORT = os.environ.get('DEV_PORT', 8080)
 LOCAL_DIR = os.environ.get('DEV_LOCAL_DIR', '/home/vagrant/vrcloud')
 CONTAINER_DIR = os.environ.get('DEV_CONTAINER_DIR', '/vrcloud')
+DJANGO_STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
+DJANGO_STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT', '/home/vagrant/vrcloud/static')
+DJANGO_MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/media/')
+DJANGO_MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', '/home/vagrant/vrcloud/media')
 
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'cloudspeaker')
 POSTGRES_USER = os.environ.get('POSTGRES_USER', 'cloudspeaker')
@@ -26,7 +30,7 @@ REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 
 RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5672')
 RABBITMQ_USER = os.environ.get('RABBITMQ_USER', 'rabbityface')
-RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS', 'rabbitypass')
+RABBITMQ_PASSWORD = os.environ.get('RABBITMQ_PASSWORD', 'rabbitypass')
 RABBITMQ_HOSTNAME = os.environ.get('RABBITMQ_HOSTNAME', 'cloudrabbit')
 RABBITMQ_COOKIE = os.environ.get('RABBITMQ_COOKIE', uuid.uuid4())
 
@@ -237,7 +241,7 @@ def boot_rabbitmq():
          'rabbitmq ').format(port=RABBITMQ_PORT,
                              rabbitmq_hostname=RABBITMQ_HOSTNAME,
                              rabbitmq_user=RABBITMQ_USER,
-                             rabbitmq_pass=RABBITMQ_PASS,
+                             rabbitmq_pass=RABBITMQ_PASSWORD,
                              rabbitmq_cookie=RABBITMQ_COOKIE))
 
     # RabbitMQ needs a couple of seconds to boot up.
@@ -289,7 +293,7 @@ def boot_celery():
         'RABBITMQ_HOST':local_ip,
         'RABBITMQ_PORT':RABBITMQ_PORT,
         'RABBITMQ_USER':RABBITMQ_USER,
-        'RABBITMQ_PASS':RABBITMQ_PASS,
+        'RABBITMQ_PASSWORD':RABBITMQ_PASSWORD,
         'DJANGO_SETTINGS_MODULE':'vrcloud.settings'
     }
 
