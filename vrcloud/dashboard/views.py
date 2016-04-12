@@ -3,8 +3,10 @@ from django.contrib.auth import authenticate, login as auth_login
 from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.core import signing
 
 # Create your views here.
+
 
 def login(request):
     """
@@ -36,8 +38,24 @@ def login(request):
 def register(request):
     """
     Create a new account!
+    This account will be created in an "e-mail unverified" state until the user
+    verifies the e-mail.
     """
     return {}
+
+
+def verify(request, signature):
+    """
+    Check that the email hash is good.
+    If so, give that user the 'can_email' permission.
+    """
+    signer = signing.Signer()
+    try:
+        email = signer.unsign(signature)
+
+    except signing.BadSignature:
+        messages.add_message(request, messages.ERROR, "Oh no! Something has gone wrong!")
+
 
 def recover(request):
     """
@@ -45,7 +63,8 @@ def recover(request):
     """
     return {}
 
-def verify(request, hmac):
+
+def send_verification_email(request):
     """
 
     """
