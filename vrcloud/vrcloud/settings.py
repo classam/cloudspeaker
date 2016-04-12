@@ -276,9 +276,8 @@ CELERYBEAT_SCHEDULE = {
 }
 
 # Authentication
-# https://django-registration.readthedocs.org/en/2.0.3/
-LOGIN_URL = "/dashboard/login"
-ACCOUNT_ACTIVATION_DAYS = 7
+LOGIN_URL = "/login"
+LOGIN_LANDING_PAGE = "/status"
 
 # Master Template Stuff
 GOOGLE_ANALYTICS_TOKEN = os.environ.get('GOOGLE_ANALYTICS_TOKEN', '12345')
