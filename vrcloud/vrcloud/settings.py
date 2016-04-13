@@ -59,11 +59,14 @@ ADMINS = ((os.environ.get("DJANGO_ADMIN_NAME", "Curtis Lassam"),
 if VERBOSE:
     print("ADMINS: {}".format(ADMINS))
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", uuid.uuid4())
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not os.environ.get("DJANGO_PRODUCTION", False)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+if DEBUG:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "flomph")
+else:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", uuid.uuid4())
 
 if DEBUG and VERBOSE:
     print("Loading in DEBUG mode!")
@@ -149,7 +152,7 @@ else:
 # https://github.com/django-ses/django-ses
 
 EMAIL_SUBJECT_PREFIX = 'VR Cloud '
-SERVER_EMAIL = os.environ.get("DJANGO_ADMIN_EMAIL", "curtis@lassam.net")
+SERVER_EMAIL = os.environ.get("DJANGO_ADMIN_EMAIL", "noreply@{}".format(SITE_DOMAIN))
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -278,9 +281,21 @@ CELERYBEAT_SCHEDULE = {
 # Authentication
 LOGIN_URL = "/login"
 LOGIN_LANDING_PAGE = "/status"
+HOME_PAGE = "/status"
 
 # Master Template Stuff
 GOOGLE_ANALYTICS_TOKEN = os.environ.get('GOOGLE_ANALYTICS_TOKEN', '12345')
 FAVICON = os.environ.get('DJANGO_FAVICON', 'http://cube-drone.com/static/dashboard/images/favicon.png')
 SITE_TITLE = os.environ.get('DJANGO_SITE_TITLE', 'MCClick')
 SITE_META = os.environ.get('DJANGO_SITE_META', 'An online community for things and stuff.')
+
+# Emails
+VERIFICATION_EMAIL_SUBJECT = "Please verify your e-mail for {}".format(SITE_TITLE)
+VERIFICATION_EMAIL = """
+Hi,
+
+You are being asked to confirm the e-mail address {email} with {site_title}
+
+Click here to confirm it:
+{verification_url}
+"""
