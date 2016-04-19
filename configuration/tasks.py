@@ -143,9 +143,6 @@ def boot_postgres():
          'postgres ').format(port=POSTGRES_PORT,
                              postgres_args=docker_vars(postgres_args)))
 
-    # Postgres needs a couple of seconds to boot up.
-    time.sleep(2)
-
 
 @task
 def kill_postgres():
@@ -190,9 +187,6 @@ def boot_redis():
          '-p {port}:{port} ' +
          '-d ' +
          'redis ').format(port=REDIS_PORT))
-
-    # Redis needs a couple of seconds to boot up.
-    time.sleep(2)
 
 
 @task
@@ -243,9 +237,6 @@ def boot_rabbitmq():
                              rabbitmq_user=RABBITMQ_USER,
                              rabbitmq_pass=RABBITMQ_PASSWORD,
                              rabbitmq_cookie=RABBITMQ_COOKIE))
-
-    # RabbitMQ needs a couple of seconds to boot up.
-    time.sleep(2)
 
 
 @task
@@ -352,11 +343,12 @@ def recycle():
     run('docker ps -a')
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def manage(cmd):
     """
     Run manage.py interactively.
     """
+    time.sleep(2)
     section("Run manage.py interactively.")
 
     # Intercept Ctrl-C and kill the container when we exit
@@ -366,12 +358,6 @@ def manage(cmd):
         sys.exit(0)
 
     signal.signal(signal.SIGINT, intercept_sigint_and_kill_docker_container)
-
-    # Boot Postgres (if it's not already up)
-    boot_postgres()
-    boot_redis()
-    boot_rabbitmq()
-    boot_celery()
 
     local_ip = docker_ip()
     redis_location = "redis://{host}:{port}".format(host=local_ip, port=REDIS_PORT)
@@ -396,7 +382,7 @@ def manage(cmd):
                     cmd=cmd), pty=True)
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def runserver():
     """
     Run the dev server!
@@ -404,7 +390,7 @@ def runserver():
     manage("runserver 0.0.0.0:{port}".format(port=PORT))
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def makemigrations():
     """
     Scan DB Models for changes to the database. Make 'migrations' entries for them.
@@ -413,7 +399,7 @@ def makemigrations():
     manage("makemigrations")
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def migrate():
     """
     Apply any outstanding 'migrations' entries to the database.
@@ -430,7 +416,7 @@ def startapp(name):
     manage("startapp {}".format(name))
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def check():
     """
     Check the app for common problems
@@ -439,7 +425,7 @@ def check():
     manage("sendtestemail --admins")
 
 
-@task
+@task(boot_postgres)
 def dbshell():
     """
     Run the DB Shell
@@ -447,7 +433,7 @@ def dbshell():
     manage("dbshell")
 
 
-@task
+@task(boot_postgres, boot_redis, boot_rabbitmq, boot_celery)
 def shell():
     """
     Run the iPython Shell
@@ -455,24 +441,18 @@ def shell():
     manage("shell")
 
 
-@task
+@task(makemigrations, migrate, runserver)
 def go():
     """
     Get the dev server ready and GO!
     """
-    makemigrations()
-    migrate()
-    runserver()
+    pass
 
-@task
+@task(kill_postgres, kill_redis, kill_celery, kill_rabbitmq)
 def stop():
     """
     Kill everything, get us back to a clean state.
     """
-    kill_postgres()
-    kill_redis()
-    kill_celery()
-    kill_rabbitmq()
     run("docker kill django-manage", warn=True)
     run("docker rm django-manage", warn=True)
     recycle()
